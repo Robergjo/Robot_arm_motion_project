@@ -51,35 +51,6 @@ class ActorCriticNetwork(nn.Module):
         value = self.critic(shared)
         return action, value
 
-# PPO loss class for training
-# class PPOLoss:
-#     def __init__(self, clip_epsilon=0.2, gamma=0.99, lambda_=0.95):
-#         self.clip_epsilon = clip_epsilon
-#         self.gamma = gamma
-#         self.lambda_ = lambda_
-
-#     def compute_loss(self, states, actions, rewards, values, log_probs, next_values, dones):
-#         # Discounted returns
-#         returns = []
-#         discounted_return = 0
-#         for r, d in zip(reversed(rewards), reversed(dones)):
-#             discounted_return = r + self.gamma * discounted_return * (1 - d)
-#             returns.insert(0, discounted_return)
-        
-#         returns = torch.tensor(returns).to(states.device)
-#         advantages = returns - values.detach()
-
-#         # Policy loss
-#         ratio = torch.exp(log_probs - log_probs.detach())
-#         clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
-#         policy_loss = -torch.min(ratio * advantages, clipped_ratio * advantages).mean()
-
-#         # Value loss
-#         value_loss = (returns - values).pow(2).mean()
-
-#         return policy_loss + 0.5 * value_loss
-
-
 class PPOLoss:
     def __init__(self, clip_epsilon=0.2, gamma=0.99, lambda_=0.95):
         self.clip_epsilon = clip_epsilon
@@ -108,7 +79,6 @@ class PPOLoss:
         gae = 0
         dones = torch.tensor(dones, requires_grad=True, dtype=torch.float32).to(torch.device("cpu"))
         next_values.append(0)  # Handle last step for length mismatch
-        print(len(rewards))
         for i in reversed(range(len(rewards))):
             # print("--------debug--------")
             # print("Reward", len(rewards), "next values", len(next_values),"dones",  len(dones),"values", len(values))
@@ -128,7 +98,7 @@ class PPOLoss:
         # Convert to tensor
         log_probs = torch.tensor(log_probs, requires_grad=True).to(torch.device("cpu"))
         old_log_probs = torch.tensor(old_log_probs, requires_grad=True).to(torch.device("cpu"))
-        print("Log probs", log_probs, "Old log probs", old_log_probs)
+        # print("Log probs", log_probs, "Old log probs", old_log_probs)
 
         ratio = torch.exp(log_probs - old_log_probs)  # Importance sampling ratio
         clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
@@ -172,21 +142,21 @@ ppo_loss = PPOLoss(clip_epsilon=clip_epsilon, gamma=gamma, lambda_=lambda_gae)
 
 
 def training(env, network, optimizer, ppo_loss):
-    max_steps = 128
+    max_steps = 1000
     previous_distance = None
     # Träningsloop
     states, actions, rewards, values, log_probs, dones = [], [], [], [], [], []
     
-    for episode in range(10): # Episode = when robot has reached the goal
+    for episode in range(10): 
         old_log_probs = log_probs
         print("For loop. Episode", episode)
         time.sleep(0.5)
         state, _ = env.reset()   
-        print(state)
+        # print(state)
         desired_goal = state["desired_goal"]
         state = state["observation"]
-        print(state)
-        print("-----------------")
+        # print(state)
+        # print("-----------------")
         done = False
         step = 0
 
@@ -204,16 +174,16 @@ def training(env, network, optimizer, ppo_loss):
             #         # print("Random Action", action)
             #         ac = action
             # else:
-            if step % 100 == 0 or step <= 20:
-                print("Count", step)
-                print("1:", action)
+            # if step % 100 == 0 or step <= 20:
+            #     print("Count", step)
+            #     print("1:", action)
             action = action.detach().numpy()[0]
-            if step % 100 == 0:
-                print("2:", action)
+            # if step % 100 == 0:
+            #     print("2:", action)
             
             action = np.clip(action, env.action_space.low, env.action_space.high)
-            if step % 500 == 0 or step <= 20:
-                print("After clip", action)
+            # if step % 500 == 0 or step <= 20:
+            #     print("After clip", action)
             
 
             next_state, reward, done, _, _ = env.step(action)
