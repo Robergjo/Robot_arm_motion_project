@@ -106,22 +106,30 @@ class PPOLoss:
         # Compute Generalized Advantage Estimation (GAE)
         advantages = []
         gae = 0
-        dones = torch.tensor(dones, dtype=torch.float32).to(torch.device("cpu"))
+        dones = torch.tensor(dones, requires_grad=True, dtype=torch.float32).to(torch.device("cpu"))
         next_values.append(0)  # Handle last step for length mismatch
+        print(len(rewards))
         for i in reversed(range(len(rewards))):
-            print("--------debug--------")
-            print("Reward", len(rewards), "next values", len(next_values),"dones",  len(dones),"values", len(values))
+            # print("--------debug--------")
+            # print("Reward", len(rewards), "next values", len(next_values),"dones",  len(dones),"values", len(values))
             delta = rewards[i] + self.gamma * next_values[i] * (1 - dones[i]) - values[i]
             gae = delta + self.gamma * self.lambda_ * (1 - dones[i]) * gae
             advantages.insert(0, gae)
-        advantages = torch.tensor(advantages).to(torch.device("cpu"))
+        advantages = torch.tensor(advantages, requires_grad=True).to(torch.device("cpu"))
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)  # Normalize advantages
 
         # Compute returns (target values for the critic)
+        
+        values = torch.tensor(values, requires_grad=True).to(torch.device("cpu"))
         print("Advantages", advantages.dtype, "Values", values.dtype)
         returns = advantages + values
 
         # Policy loss
+        # Convert to tensor
+        log_probs = torch.tensor(log_probs, requires_grad=True).to(torch.device("cpu"))
+        old_log_probs = torch.tensor(old_log_probs, requires_grad=True).to(torch.device("cpu"))
+        print("Log probs", log_probs, "Old log probs", old_log_probs)
+
         ratio = torch.exp(log_probs - old_log_probs)  # Importance sampling ratio
         clipped_ratio = torch.clamp(ratio, 1 - self.clip_epsilon, 1 + self.clip_epsilon)
         policy_loss = -torch.min(ratio * advantages, clipped_ratio * advantages).mean()
@@ -169,7 +177,7 @@ def training(env, network, optimizer, ppo_loss):
     # Träningsloop
     states, actions, rewards, values, log_probs, dones = [], [], [], [], [], []
     
-    for episode in range(10):
+    for episode in range(10): # Episode = when robot has reached the goal
         old_log_probs = log_probs
         print("For loop. Episode", episode)
         time.sleep(0.5)
@@ -215,8 +223,8 @@ def training(env, network, optimizer, ppo_loss):
             reward, current_distance = compute_distance_reward(achieved_goal, desired_goal, previous_distance)
             previous_distance = current_distance
 
-            if step % 500 == 0 or step <= 20:
-                print(env.step(action))
+            # if step % 500 == 0 or step <= 20:
+            #     print(env.step(action))
             log_prob = -0.5 * ((action - action.mean()) ** 2).sum()
             
             states.append(state_tensor)
@@ -233,11 +241,12 @@ def training(env, network, optimizer, ppo_loss):
 
             # Uppdatera nätverket
         for _ in range(epochs):
-            print("PPO Loss")
+            # print("PPO Loss")
             policy_loss = ppo_loss.compute_loss(
                 states, actions, rewards, values, log_probs, old_log_probs, values[1:], dones
             )
             # states, actions, rewards, values, log_probs, old_log_probs, next_values, done
+            # print("PPO done, now optimizer")
             optimizer.zero_grad()
             policy_loss.backward()
             optimizer.step()
