@@ -4,6 +4,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.callbacks import EvalCallback
+import gymnasium as gym
+import panda_gym
 import os
 
 # Path to the saved model
