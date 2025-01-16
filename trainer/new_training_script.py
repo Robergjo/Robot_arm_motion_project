@@ -1,52 +1,44 @@
 import gymnasium as gym
-import panda_gym
 from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.vec_env import DummyVecEnv
 import os
 
-def main():
-    # Envirom,ent
-    env_id = "PandaPushDense-v3"
-    log_dir = "./ppo_logs/"
-    os.makedirs(log_dir, exist_ok=True)
+LOG_DIR = "./ppo_logs/"
+BEST_MODEL_DIR = "./ppo_best_model/"
+MODEL_PATH = "ppo_robot_arm.zip"
 
-    # Wrap the environment to monitor åperformance
-    env = make_vec_env(env_id, n_envs=1)
-    env = Monitor(env, log_dir)
+def train_model(env_id="PandaReachDense-v3", total_timesteps=100000):
+    """
+    Train a PPO model on the specified environment.
 
-    # PPO
-    model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./ppo_tensorboard/")
+    Args:
+        env_id (str): The environment ID.
+        total_timesteps (int): Number of timesteps for training.
+    """
+    os.makedirs(LOG_DIR, exist_ok=True)
+    os.makedirs(BEST_MODEL_DIR, exist_ok=True)
 
-    # Eval
-    eval_env = make_vec_env(env_id, n_envs=1)
-    eval_callback = EvalCallback(
-        eval_env,
-        best_model_save_path="./ppo_best_model/",
-        log_path="./ppo_eval_logs/",
-        eval_freq=5000,
-        deterministic=True,
-        render=False,
-    )
+    print(f"Creating environment: {env_id}")
+    env = gym.make(env_id)
+    env = DummyVecEnv([lambda: env])
 
-    # Step 4: Train the model
+    print("Initializing PPO model...")
+    model = PPO("MultiInputPolicy", env, verbose=1)
+
     print("Starting training...")
-    model.learn(total_timesteps=50000, callback=eval_callback)
+    model.learn(total_timesteps=total_timesteps)
     print("Training completed!")
 
-    # Step 5: Save the model
-    model.save("ppo_panda_push")
-    print("Model saved to ppo_panda_push.zip")
+    print(f"Saving the model to {MODEL_PATH}...")
+    model.save(MODEL_PATH)
 
-    # Step 6: Load and test the model
-    loaded_model = PPO.load("ppo_panda_push")
-    obs = eval_env.reset()
+    print("Testing the trained model...")
+    obs = env.reset()
 
     for _ in range(1000):
-        action, _states = loaded_model.predict(obs)
-        obs, rewards, dones, info = eval_env.step(action)
-        eval_env.render()
+        action, _states = model.predict(obs)
+        obs, rewards, dones, info = env.step(action)
+        env.render()
 
 if __name__ == "__main__":
-    main()
+    train_model()

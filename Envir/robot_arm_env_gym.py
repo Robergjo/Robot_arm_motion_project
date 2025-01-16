@@ -3,7 +3,7 @@ import panda_gym
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 
-env = gym.make("PandaReach-v3", 
+env = gym.make("PandaReachDense-v3", 
                render_mode="human", 
                renderer="OpenGL",
                render_width=480,
