@@ -4,7 +4,7 @@ import panda_gym
 import time
 
 # Path to the fine-tuned model
-FINE_TUNED_MODEL_PATH = "../ppo_robot_arm_fine_tuned.zip"
+FINE_TUNED_MODEL_PATH = "ppo_robot_arm_fine_tuned.zip"
 
 def run_fine_tuned_model(env_id="PandaReachDense-v3", steps=1000):
     """
