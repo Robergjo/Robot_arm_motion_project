@@ -1,5 +1,5 @@
-from trainer.training_script import train_model
-from trainer.fine_tuning import fine_tune
+from train_model.training_script import train_model
+from train_model.fine_tuning import fine_tune
 import gymnasium as gym
 import panda_gym
 import time
