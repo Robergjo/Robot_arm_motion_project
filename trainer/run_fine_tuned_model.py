@@ -1,9 +1,10 @@
 import gymnasium as gym
 from stable_baselines3 import PPO
 import panda_gym
+import time
 
 # Path to the fine-tuned model
-FINE_TUNED_MODEL_PATH = "ppo_robot_arm_fine_tuned.zip"
+FINE_TUNED_MODEL_PATH = "../ppo_robot_arm_fine_tuned.zip"
 
 def run_fine_tuned_model(env_id="PandaReachDense-v3", steps=1000):
     """
@@ -23,6 +24,7 @@ def run_fine_tuned_model(env_id="PandaReachDense-v3", steps=1000):
 
         print(f"Running environment: {env_id} for {steps} steps...")
         for _ in range(steps):
+            time.sleep(0.3)
             action, _states = model.predict(obs)
             obs, rewards, terminated, truncated, info = env.step(action)
             env.render()
